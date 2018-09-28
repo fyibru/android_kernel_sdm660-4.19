@@ -1341,9 +1341,17 @@ bool uclamp_latency_sensitive(struct task_struct *p)
 	struct cgroup_subsys_state *css = task_css(p, cpu_cgrp_id);
 	struct task_group *tg;
 
-	if (!css)
-		return false;
-	tg = container_of(css, struct task_group, css);
+	if (task_has_fair_policy(p)) {
+		if (p->policy != SCHED_NORMAL)
+			return false;
+		if (effective_prio(p) < DEFAULT_PRIO)
+			return true;
+	}
+
+#ifdef CONFIG_UCLAMP_TASK_GROUP
+	if (task_group(p)->shares > ROOT_TASK_GROUP_LOAD)
+		return true;
+#endif
 
 	return tg->latency_sensitive;
 #else
