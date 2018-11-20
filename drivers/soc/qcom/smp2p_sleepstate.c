@@ -15,6 +15,8 @@
 
 #define PROC_AWAKE_ID 12 /* 12th bit */
 #define AWAKE_BIT BIT(PROC_AWAKE_ID)
+struct qcom_smem_state *smem_state;
+
 static struct wakeup_source *notify_ws;
 
 struct smp2p_state {
@@ -38,12 +40,10 @@ static int sleepstate_pm_notifier(struct notifier_block *nb,
 
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
-		qcom_smem_state_update_bits(smp2p_info->state, AWAKE_BIT, 0);
 		usleep_range(10000, 10500); /* Tuned based on SMP2P latencies */
 		break;
 
 	case PM_POST_SUSPEND:
-		qcom_smem_state_update_bits(smp2p_info->state, AWAKE_BIT, AWAKE_BIT);
 		break;
 	}
 
@@ -64,9 +64,10 @@ static int smp2p_sleepstate_probe(struct platform_device *pdev)
 	struct device_node *node = dev->of_node;
 	struct smp2p_state *smp2p_info;
 
-	smp2p_info = devm_kzalloc(dev, sizeof(*smp2p_info), GFP_KERNEL);
-	if (!smp2p_info)
-		return PTR_ERR(smp2p_info);
+	smem_state = qcom_smem_state_get(&pdev->dev, 0, &ret);
+	if (IS_ERR(smem_state))
+		return PTR_ERR(smem_state);
+	qcom_smem_state_update_bits(smem_state, AWAKE_BIT, AWAKE_BIT);
 
 	smp2p_info->state = qcom_smem_state_get(&pdev->dev, NULL, &ret);
 	if (IS_ERR(smp2p_info->state))
