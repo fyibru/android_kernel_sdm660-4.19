@@ -2711,9 +2711,11 @@ static inline bool uclamp_is_used(void)
 	return static_branch_likely(&sched_uclamp_used);
 }
 #else /* CONFIG_UCLAMP_TASK */
-static inline
-unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
-				  struct task_struct *p)
+
+unsigned long stune_util(int cpu, unsigned int util);
+
+static inline unsigned int uclamp_util_with(struct rq *rq, unsigned int util,
+					    struct task_struct *p)
 {
 	return util;
 }
@@ -2735,6 +2737,13 @@ bool uclamp_boosted(struct task_struct *p);
 # endif
 #else
 # define arch_scale_freq_invariant()	false
+#endif
+
+#ifdef CONFIG_SMP
+static unsigned long __maybe_unused capacity_orig_of(int cpu)
+{
+	return cpu_rq(cpu)->cpu_capacity_orig;
+}
 #endif
 
 /**
@@ -2787,7 +2796,14 @@ static inline unsigned long cpu_util_rt(struct rq *rq)
 	return READ_ONCE(rq->avg_rt.util_avg);
 }
 
+static inline unsigned long cpu_util_freq(int cpu) {
+	struct rq *rq = cpu_rq(cpu);
+
+	return min(cpu_util_cfs(rq) + cpu_util_rt(rq), capacity_orig_of(cpu));
+}
+
 #else /* CONFIG_CPU_FREQ_GOV_SCHEDUTIL */
+
 static inline unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 				 unsigned long max, enum schedutil_type type,
 				 struct task_struct *p)
@@ -2795,10 +2811,6 @@ static inline unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	return 0;
 }
 
-static inline unsigned long cpu_util_rt(struct rq *rq)
-{
-	return 0;
-}
 #endif /* CONFIG_CPU_FREQ_GOV_SCHEDUTIL */
 
 #ifdef CONFIG_SMP
