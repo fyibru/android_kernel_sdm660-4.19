@@ -9649,9 +9649,6 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 
 		for_each_cpu(cpu, sched_group_span(sdg)) {
 			unsigned long cpu_cap = capacity_of(cpu);
-#ifdef CONFIG_SCHED_WALT
-			if (cpumask_test_cpu(cpu, cpu_isolated_mask))
-#endif
 			capacity += cpu_cap;
 			min_capacity = min(cpu_cap, min_capacity);
 			max_capacity = max(cpu_cap, max_capacity);
