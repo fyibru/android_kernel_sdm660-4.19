@@ -33,7 +33,61 @@
 
 #define MAX_NAME_LEN 128
 
-struct section *find_section_by_name(struct elf *elf, const char *name)
+static inline u32 str_hash(const char *str)
+{
+	return jhash(str, strlen(str), 0);
+}
+
+static inline int elf_hash_bits(void)
+{
+	return vmlinux ? ELF_HASH_BITS : 16;
+}
+
+#define elf_hash_add(hashtable, node, key) \
+	hlist_add_head(node, &hashtable[hash_min(key, elf_hash_bits())])
+
+static void elf_hash_init(struct hlist_head *table)
+{
+	__hash_init(table, 1U << elf_hash_bits());
+}
+
+#define elf_hash_for_each_possible(name, obj, member, key)			\
+	hlist_for_each_entry(obj, &name[hash_min(key, elf_hash_bits())], member)
+
+static bool symbol_to_offset(struct rb_node *a, const struct rb_node *b)
+{
+	struct symbol *sa = rb_entry(a, struct symbol, node);
+	struct symbol *sb = rb_entry(b, struct symbol, node);
+
+	if (sa->offset < sb->offset)
+		return true;
+	if (sa->offset > sb->offset)
+		return false;
+
+	if (sa->len < sb->len)
+		return true;
+	if (sa->len > sb->len)
+		return false;
+
+	sa->alias = sb;
+
+	return false;
+}
+
+static int symbol_by_offset(const void *key, const struct rb_node *node)
+{
+	const struct symbol *s = rb_entry(node, struct symbol, node);
+	const unsigned long *o = key;
+
+	if (*o < s->offset)
+		return -1;
+	if (*o >= s->offset + s->len)
+		return 1;
+
+	return 0;
+}
+
+struct section *find_section_by_name(const struct elf *elf, const char *name)
 {
 	struct section *sec;
 
@@ -70,6 +124,62 @@ static struct symbol *find_symbol_by_index(struct elf *elf, unsigned int idx)
 }
 
 struct symbol *find_symbol_by_offset(struct section *sec, unsigned long offset)
+{
+	struct rb_node *node;
+
+	rb_for_each(node, &offset, &sec->symbol_tree, symbol_by_offset) {
+		struct symbol *s = rb_entry(node, struct symbol, node);
+
+		if (s->offset == offset && s->type != STT_SECTION)
+			return s;
+	}
+
+	return NULL;
+}
+
+struct symbol *find_func_by_offset(struct section *sec, unsigned long offset)
+{
+	struct rb_node *node;
+
+	rb_for_each(node, &offset, &sec->symbol_tree, symbol_by_offset) {
+		struct symbol *s = rb_entry(node, struct symbol, node);
+
+		if (s->offset == offset && s->type == STT_FUNC)
+			return s;
+	}
+
+	return NULL;
+}
+
+struct symbol *find_symbol_containing(const struct section *sec, unsigned long offset)
+{
+	struct rb_node *node;
+
+	rb_for_each(node, &offset, &sec->symbol_tree, symbol_by_offset) {
+		struct symbol *s = rb_entry(node, struct symbol, node);
+
+		if (s->type != STT_SECTION)
+			return s;
+	}
+
+	return NULL;
+}
+
+struct symbol *find_func_containing(struct section *sec, unsigned long offset)
+{
+	struct rb_node *node;
+
+	rb_for_each(node, &offset, &sec->symbol_tree, symbol_by_offset) {
+		struct symbol *s = rb_entry(node, struct symbol, node);
+
+		if (s->type == STT_FUNC)
+			return s;
+	}
+
+	return NULL;
+}
+
+struct symbol *find_symbol_by_name(const struct elf *elf, const char *name)
 {
 	struct symbol *sym;
 
@@ -279,23 +389,12 @@ static int read_symbols(struct elf *elf)
 		sym->offset = sym->sym.st_value;
 		sym->len = sym->sym.st_size;
 
-		/* sorted insert into a per-section list */
-		entry = &sym->sec->symbol_list;
-		list_for_each_prev(tmp, &sym->sec->symbol_list) {
-			struct symbol *s;
-
-			s = list_entry(tmp, struct symbol, list);
-
-			if (sym->offset > s->offset) {
-				entry = tmp;
-				break;
-			}
-
-			if (sym->offset == s->offset && sym->len >= s->len) {
-				entry = tmp;
-				break;
-			}
-		}
+		rb_add(&sym->node, &sym->sec->symbol_tree, symbol_to_offset);
+		pnode = rb_prev(&sym->node);
+		if (pnode)
+			entry = &rb_entry(pnode, struct symbol, node)->list;
+		else
+			entry = &sym->sec->symbol_list;
 		list_add(&sym->list, entry);
 		hash_add(sym->sec->symbol_hash, &sym->hash, sym->idx);
 	}
