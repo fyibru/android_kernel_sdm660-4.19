@@ -578,7 +578,7 @@ static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
 	return min_vruntime;
 }
 
-static inline int entity_before(struct sched_entity *a,
+static inline bool entity_before(struct sched_entity *a,
 				struct sched_entity *b)
 {
 	return (s64)(a->vruntime - b->vruntime) < 0;
@@ -712,6 +712,9 @@ static u64 __update_min_vruntime(struct cfs_rq *cfs_rq, u64 vruntime)
 	return min_vruntime;
 }
 
+#define __node_2_se(node) \
+	rb_entry((node), struct sched_entity, run_node)
+
 static void update_min_vruntime(struct cfs_rq *cfs_rq)
 {
 	struct sched_entity *curr = cfs_rq->curr;
@@ -727,8 +730,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 	}
 
 	if (leftmost) { /* non-empty tree */
-		struct sched_entity *se;
-		se = rb_entry(leftmost, struct sched_entity, run_node);
+		struct sched_entity *se = __node_2_se(leftmost);
 
 		if (!curr)
 			vruntime = se->vruntime;
@@ -741,82 +743,17 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 		      max_vruntime(cfs_rq->min_vruntime, vruntime));
 }
 
-#ifdef CONFIG_PERF_HUMANTASK
-static inline bool jump_queue(struct task_struct *tsk, struct rb_node *root)
+static inline bool __entity_less(struct rb_node *a, const struct rb_node *b)
 {
-	bool jump = false;
-
-	if (tsk && tsk->human_task && root) {
-		if (tsk->human_task > MAX_LEVER) {
-			jump = true;
-			goto out;
-		}
-
-		if (tsk->human_task < MAX_LEVER)
-			jump = true;
-
-		tsk->human_task = jump ? ++tsk->human_task : 1;
-	}
-
-out:
-	if (jump)
-		trace_sched_debug_einfo(tsk, "jumper", "boostx",
-					tsk->human_task, sched_boost(),
-					1, 1, 0);
-
-	return jump;
+	return entity_before(__node_2_se(a), __node_2_se(b));
 }
-#endif
 
 /*
  * Enqueue an entity into the rb-tree:
  */
 static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-	struct rb_node **link = &cfs_rq->tasks_timeline.rb_root.rb_node;
-	struct rb_node *parent = NULL;
-	struct sched_entity *entry;
-	bool leftmost = true;
-#ifdef CONFIG_PERF_HUMANTASK
-	bool speed = false;
-	struct task_struct *tsk = NULL;
-
-	if (entity_is_task(se)) {
-		tsk = task_of(se);
-		speed = jump_queue(tsk, *link);
-	}
-
-	if (speed)
-		se->vruntime = tsk->human_task * 1000000;
-#endif
-
-	/*
-	 * Find the right place in the rbtree:
-	 */
-	while (*link) {
-		parent = *link;
-		entry = rb_entry(parent, struct sched_entity, run_node);
-		/*
-		 * We dont care about collisions. Nodes with
-		 * the same key stay together.
-		 */
-		if (entity_before(se, entry)) {
-			link = &parent->rb_left;
-		} else {
-			link = &parent->rb_right;
-			leftmost = false;
-		}
-	}
-
-#ifdef CONFIG_PERF_HUMANTASK
-	if (speed)
-		se->vruntime = entry->vruntime - 1;
-#endif
-
-	rb_link_node(&se->run_node, parent, link);
-	rb_insert_color_cached(&se->run_node,
-			       &cfs_rq->tasks_timeline, leftmost);
-	avg_vruntime_add(cfs_rq, se);
+	rb_add_cached(&se->run_node, &cfs_rq->tasks_timeline, __entity_less);
 }
 
 static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
@@ -832,7 +769,7 @@ struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 	if (!left)
 		return NULL;
 
-	return rb_entry(left, struct sched_entity, run_node);
+	return __node_2_se(left);
 }
 
 static struct sched_entity *__pick_next_entity(struct sched_entity *se)
@@ -842,7 +779,7 @@ static struct sched_entity *__pick_next_entity(struct sched_entity *se)
 	if (!next)
 		return NULL;
 
-	return rb_entry(next, struct sched_entity, run_node);
+	return __node_2_se(next);
 }
 
 #ifdef CONFIG_SCHED_DEBUG
@@ -853,7 +790,7 @@ struct sched_entity *__pick_last_entity(struct cfs_rq *cfs_rq)
 	if (!last)
 		return NULL;
 
-	return rb_entry(last, struct sched_entity, run_node);
+	return __node_2_se(last);
 }
 
 /**************************************************************
