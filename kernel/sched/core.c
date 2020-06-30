@@ -1452,7 +1452,7 @@ static void __init init_uclamp_rq(struct rq *rq)
 		};
 	}
 
-	rq->uclamp_flags = UCLAMP_FLAG_IDLE;
+	rq->uclamp_flags = 0;
 }
 
 static void __init init_uclamp(void)
