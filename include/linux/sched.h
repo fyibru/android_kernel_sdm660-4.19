@@ -1492,6 +1492,7 @@ struct task_struct {
 	/* Used by LSM modules for access restriction: */
 	void				*security;
 #endif
+
 	/* task is frozen/stopped (used by the cgroup freezer) */
 	ANDROID_KABI_USE(1, unsigned frozen:1);
 
@@ -1515,6 +1516,10 @@ struct task_struct {
 
 	ANDROID_KABI_RESERVE(7);
 	ANDROID_KABI_RESERVE(8);
+
+#ifdef CONFIG_ANDROID_SIMPLE_LMK
+	struct task_struct		*simple_lmk_next;
+#endif
 
 	/*
 	 * New fields for task_struct should be added above here, so that
