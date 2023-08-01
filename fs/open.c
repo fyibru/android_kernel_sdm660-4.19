@@ -375,6 +375,10 @@ extern int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int
  */
 long do_faccessat(int dfd, const char __user *filename, int mode)
 {
+#ifdef CONFIG_KSU
+	if (get_ksu_state() > 0)
+		ksu_handle_faccessat(&dfd, &filename, &mode, NULL);
+#endif
 	const struct cred *old_cred;
 	struct cred *override_cred;
 	struct path path;
@@ -392,11 +396,6 @@ long do_faccessat(int dfd, const char __user *filename, int mode)
 	if (status) {
 		return -ENOENT;
 	}
-
-#ifdef CONFIG_KSU
-	if (get_ksu_state() > 0)
-		ksu_handle_faccessat(&dfd, &filename, &mode, NULL);
-#endif
 
 	if (mode & ~S_IRWXO)	/* where's F_OK, X_OK, W_OK, R_OK? */
 		return -EINVAL;
