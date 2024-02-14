@@ -392,8 +392,8 @@ static ssize_t amdgpu_debugfs_regs_smc_read(struct file *f, char __user *buf,
 	int r;
 
 	if (!adev->smc_rreg)
-		return -EOPNOTSUPP;
-
+		return -EPERM;
+ 
 	if (size & 0x3 || *pos & 0x3)
 		return -EINVAL;
 
@@ -432,9 +432,6 @@ static ssize_t amdgpu_debugfs_regs_smc_write(struct file *f, const char __user *
 	struct amdgpu_device *adev = file_inode(f)->i_private;
 	ssize_t result = 0;
 	int r;
-
-	if (!adev->smc_wreg)
-		return -EOPNOTSUPP;
 
 	if (size & 0x3 || *pos & 0x3)
 		return -EINVAL;
