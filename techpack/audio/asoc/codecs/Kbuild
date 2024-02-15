@@ -221,6 +221,7 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-Wall\
 		-Werror\
 		-Wno-enum-conversion \
+
 		-D__linux__
 
 KBUILD_CPPFLAGS += $(CDEFINES)
