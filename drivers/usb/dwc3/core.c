@@ -1628,8 +1628,10 @@ skip_clk_reset:
 	dwc->index = count;
 	count++;
 
-	pm_runtime_allow(dev);
-	dwc3_debugfs_init(dwc);
+	pm_runtime_put(dev);
+
+	dma_set_max_seg_size(dev, UINT_MAX);
+
 	return 0;
 
 err3:
