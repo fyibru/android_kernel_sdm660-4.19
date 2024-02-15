@@ -1,7 +1,6 @@
 #include "linux/fs.h"
 #include "linux/module.h"
 #include "linux/workqueue.h"
-#include "linux/init.h"
 
 #include "allowlist.h"
 #include "arch.h"
@@ -9,22 +8,6 @@
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "uid_observer.h"
-
-unsigned int enable_kernelsu = 1;
-
-static int __init read_kernelsu_state(char *s)
-{
-	if (s)
-		enable_kernelsu = simple_strtoul(s, NULL, 0);
-
-	return 1;
-}
-__setup("kernelsu.enabled=", read_kernelsu_state);
-
-unsigned int get_ksu_state(void)
-{
-	return enable_kernelsu;
-}
 
 static struct workqueue_struct *ksu_workqueue;
 
@@ -52,12 +35,6 @@ extern void ksu_enable_ksud();
 
 int __init kernelsu_init(void)
 {
-
-	if (enable_kernelsu < 1) {
-		pr_info_once(" is disabled");
-		return 0;
-	}
-
 #ifdef CONFIG_KSU_DEBUG
 	pr_alert("*************************************************************");
 	pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
@@ -88,9 +65,6 @@ int __init kernelsu_init(void)
 
 void kernelsu_exit(void)
 {
-	if (enable_kernelsu < 1)
-		return;
-	
 	ksu_allowlist_exit();
 
 	ksu_uid_observer_exit();
