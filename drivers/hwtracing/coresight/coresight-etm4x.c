@@ -1460,33 +1460,13 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 
 	spin_lock_init(&drvdata->spinlock);
 
-	drvdata->cpu = pdata ? pdata->cpu : -ENODEV;
-	if (drvdata->cpu == -ENODEV) {
-		dev_info(dev, "CPU not available\n");
-		return -ENODEV;
-	}
+	drvdata->cpu = pdata ? pdata->cpu : 0;
 
-	cpus_read_lock();
 	etmdrvdata[drvdata->cpu] = drvdata;
 
 	if (smp_call_function_single(drvdata->cpu,
 				etm4_init_arch_data,  drvdata, 1))
 		dev_err(dev, "ETM arch init failed\n");
-		cpus_read_unlock();
-		return ret;
-	} else if (!etm4_arch_supported(drvdata->arch)) {
-		cpus_read_unlock();
-		return -EINVAL;
-	}
-
-	ret = etm4_pm_setup_cpuslocked();
-	cpus_read_unlock();
-
-	/* etm4_pm_setup_cpuslocked() does its own cleanup - exit on error */
-	if (ret) {
-		etmdrvdata[drvdata->cpu] = NULL;
-		return ret;
-	}
 
 	if (etm4_arch_supported(drvdata->arch) == false) {
 		ret = -EINVAL;
