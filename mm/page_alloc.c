@@ -2996,38 +2996,6 @@ void free_unref_page(struct page *page)
 	local_irq_restore(flags);
 	if (!list_empty(&dst))
 		free_pcppages_bulk(zone, &dst, false);
-		
-	/*
-	 * We only track unmovable, reclaimable movable, and CMA on pcp lists.
-	 * Place ISOLATE pages on the isolated list because they are being
-	 * offlined but treat HIGHATOMIC as movable pages so we can get those
-	 * areas back if necessary. Otherwise, we may have to free
-	 * excessively into the page allocator
-	 */
-	migratetype = get_pcppage_migratetype(page);
-	if (unlikely(migratetype > MIGRATE_RECLAIMABLE)) {
-		trace_android_vh_pcplist_add_cma_pages_bypass(migratetype,
-			&pcp_skip_cma_pages);
-		if (unlikely(is_migrate_isolate(migratetype)) ||
-			pcp_skip_cma_pages) {
-			free_one_page(page_zone(page), page, pfn, order, migratetype, FPI_NONE);
-			return;
-		}
-		migratetype = MIGRATE_MOVABLE;
-		if (migratetype == MIGRATE_HIGHATOMIC)
-			migratetype = MIGRATE_MOVABLE;
-	}
-
-	zone = page_zone(page);
-	pcp_trylock_prepare(UP_flags);
-	pcp = pcp_spin_trylock_irqsave(zone->per_cpu_pageset, flags);
-	if (pcp) {
-		free_unref_page_commit(zone, pcp, page, pfn, migratetype, order);
-		pcp_spin_unlock_irqrestore(pcp, flags);
-	} else {
-		free_one_page(zone, page, pfn, order, migratetype, FPI_NONE);
-	}
-	pcp_trylock_finish(UP_flags);
 }
 
 /*
