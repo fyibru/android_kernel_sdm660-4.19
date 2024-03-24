@@ -1933,6 +1933,7 @@ static int do_execveat_common(int fd, struct filename *filename,
 	else
 		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
    #endif
+	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
 }
 
 int do_execve_file(struct file *file, void *__argv, void *__envp)
