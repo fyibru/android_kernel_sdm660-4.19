@@ -1406,7 +1406,7 @@ static inline void del_timer_wait_running(struct timer_list *timer) { }
  * * %0	- The timer was not pending
  * * %1	- The timer was pending and deactivated
  */
-int timer_delete_sync(struct timer_list *timer)
+int del_timer_sync(struct timer_list *timer)
 {
 	int ret;
 
@@ -2137,6 +2137,12 @@ static void __init init_timer_cpu(int cpu)
 	}
 }
 
+static inline void init_timer_deferrable_global(void)
+{
+	timer_base_deferrable.cpu = nr_cpu_ids;
+	raw_spin_lock_init(&timer_base_deferrable.lock);
+	timer_base_deferrable.clk = jiffies;
+}
 static void __init init_timer_cpus(void)
 {
 	int cpu;
