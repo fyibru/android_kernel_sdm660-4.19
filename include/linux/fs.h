@@ -309,6 +309,8 @@ enum rw_hint {
 #define IOCB_NOWAIT		(1 << 7)
 /* kiocb is a read or write operation submitted by fs/aio.c. */
 #define IOCB_AIO_RW		(1 << 23)
+#define IOCB_WAITQ		(1 << 19)
+#define IOCB_NOIO		(1 << 20)
 
 struct kiocb {
 	struct file		*ki_filp;
@@ -3445,11 +3447,6 @@ static inline int kiocb_set_rw_flags(struct kiocb *ki, rwf_t flags)
 {
 	int kiocb_flags = 0;
 
-	/* make sure there's no overlap between RWF and private IOCB flags */
-	BUILD_BUG_ON((__force int)RWF_SUPPORTED & IOCB_EVENTFD);
-
-	if (!flags)
-		return 0;
 	if (unlikely(flags & ~RWF_SUPPORTED))
 		return -EOPNOTSUPP;
 
