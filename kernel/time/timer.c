@@ -1234,7 +1234,7 @@ EXPORT_SYMBOL_GPL(add_timer_on);
  * @timer:	The timer to be deactivated
  *
  * The function only deactivates a pending timer, but contrary to
- * timer_delete_sync() it does not take into account whether the timer's
+ * del_timer_sync() it does not take into account whether the timer's
  * callback function is concurrently executed on a different CPU or not.
  * It neither prevents rearming of the timer. If @timer can be rearmed
  * concurrently then the return value of this function is meaningless.
@@ -1368,7 +1368,7 @@ static inline void del_timer_wait_running(struct timer_list *timer) { }
 #endif
 
 /**
- * timer_delete_sync - Deactivate a timer and wait for the handler to finish.
+ * del_timer_sync - Deactivate a timer and wait for the handler to finish.
  * @timer:	The timer to be deactivated
  *
  * Synchronization rules: Callers must prevent restarting of the timer,
@@ -1393,7 +1393,7 @@ static inline void del_timer_wait_running(struct timer_list *timer) { }
  *    timer_delete_sync(mytimer);
  *    while (base->running_timer == mytimer);
  *
- * Now timer_delete_sync() will never return and never release somelock.
+ * Now del_timer_sync() will never return and never release somelock.
  * The interrupt on the other CPU is waiting to grab somelock but it has
  * interrupted the softirq that CPU0 is waiting to finish.
  *
@@ -1439,7 +1439,7 @@ int timer_delete_sync(struct timer_list *timer)
 
 	return ret;
 }
-EXPORT_SYMBOL(timer_delete_sync);
+EXPORT_SYMBOL(del_timer_sync);
 
 static void call_timer_fn(struct timer_list *timer,
 			  void (*fn)(struct timer_list *),
@@ -2135,13 +2135,6 @@ static void __init init_timer_cpu(int cpu)
 		base->clk = jiffies;
 		timer_base_init_expiry_lock(base);
 	}
-}
-
-static inline void init_timer_deferrable_global(void)
-{
-	timer_base_deferrable.cpu = nr_cpu_ids;
-	raw_spin_lock_init(&timer_base_deferrable.lock);
-	timer_base_deferrable.clk = jiffies;
 }
 
 static void __init init_timer_cpus(void)
