@@ -175,7 +175,6 @@ extern uint sched_burst_fork_atavistic;
 extern uint sched_burst_penalty_offset;
 extern uint sched_burst_penalty_scale;
 extern uint sched_burst_cache_lifetime;
-static int three          = 3;
 static int sixty_four     = 64;
 static int maxval_12_bits = 4095;
 #endif // CONFIG_SCHED_BORE
