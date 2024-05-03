@@ -1344,6 +1344,7 @@ static int
 loop_set_status(struct loop_device *lo, const struct loop_info64 *info)
 {
 	int err;
+	struct loop_func_table *xfer;
 	struct block_device *bdev;
 	kuid_t uid = current_uid();
 	int prev_lo_flags;
