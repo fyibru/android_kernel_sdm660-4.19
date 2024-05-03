@@ -170,6 +170,11 @@ static inline u64 scale_slice(u64 delta, struct sched_entity *se) {
 	return mul_u64_u32_shr(delta, sched_prio_to_wmult[se->burst_score], 22);
 }
 
+static inline struct task_struct *task_of(struct sched_entity *se)
+{
+	return container_of(se, struct task_struct, se);
+}
+
 static void update_burst_score(struct sched_entity *se) {
 	if (!entity_is_task(se)) return;
 	struct task_struct *p = task_of(se);
@@ -552,11 +557,6 @@ find_matching_se(struct sched_entity **se, struct sched_entity **pse)
 }
 
 #else	/* !CONFIG_FAIR_GROUP_SCHED */
-
-static inline struct task_struct *task_of(struct sched_entity *se)
-{
-	return container_of(se, struct task_struct, se);
-}
 
 #define for_each_sched_entity(se) \
 		for (; se; se = NULL)
