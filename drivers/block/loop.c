@@ -1402,11 +1402,12 @@ loop_set_status(struct loop_device *lo, const struct loop_info64 *info)
 out_unfreeze:
 	blk_mq_unfreeze_queue(lo->lo_queue);
 
-	if (!err && (lo->lo_flags & LO_FLAGS_PARTSCAN) &&
-	     !(prev_lo_flags & LO_FLAGS_PARTSCAN)) {
-		lo->lo_disk->flags &= ~GENHD_FL_NO_PART_SCAN;
-		bdev = lo->lo_device;
-		partscan = true;
+	if (!err && (info->lo_flags & LO_FLAGS_PARTSCAN) &&
+	     !(lo->lo_flags & LO_FLAGS_PARTSCAN)) {
+			lo->lo_flags |= LO_FLAGS_PARTSCAN;
+			lo->lo_disk->flags &= ~GENHD_FL_NO_PART_SCAN;
+			bdev = lo->lo_device;
+			partscan = true;
 	}
 out_unlock:
 	mutex_unlock(&loop_ctl_mutex);
