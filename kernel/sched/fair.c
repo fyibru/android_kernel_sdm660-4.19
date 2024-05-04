@@ -6418,7 +6418,8 @@ long schedtune_task_margin(struct task_struct *task)
 }
 
 unsigned long
-stune_util(int cpu, unsigned int util)
+stune_util(int cpu, unsigned long other_util,
+		 struct sched_walt_cpu_load *walt_load)
 {
 	unsigned long util = min_t(unsigned long, SCHED_CAPACITY_SCALE,
 				   cpu_util_freq(cpu, walt_load) + other_util);
