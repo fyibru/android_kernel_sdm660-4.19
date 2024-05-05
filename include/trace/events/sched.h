@@ -1736,7 +1736,7 @@ DECLARE_TRACE(pelt_thermal_tp,
 	TP_PROTO(struct rq *rq),
 	TP_ARGS(rq));
 
-#include "walt.h"
+#ifndef CONFIG_SCHED_WALT
 
 TRACE_EVENT(sched_set_boost,
 
