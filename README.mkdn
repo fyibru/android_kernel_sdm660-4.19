@@ -14,4 +14,4 @@ This is basically based on non Dynamic Partition's
 
 if you wanna build it for Dynamic Partition's don't forget to
 
-cherry-pick this commit: faacd26
+cherry-pick this commit: `faacd26`
