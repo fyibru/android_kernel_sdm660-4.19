@@ -14,4 +14,15 @@ This is basically based on non Dynamic Partition's
 
 if you wanna build it for Dynamic Partition's don't forget to
 
-cherry-pick this commit: `faacd26`
+pick this commit: 
+
+cmd
+--------
+```bash
+git cherry-pick faacd2629cb30f7ebf5ace7c427ae6d04475d1c3
+```
+
+Kernel Based
+------------
+https://github.com/SonicBSV/android_kernel_asus_sdm660-4.19
+https://github.com/RyuujiX/android_kernel_asus_sdm660-4.19
