@@ -11,5 +11,7 @@ Just Copy, Paste, Then Execute the command :)
 About it
 ---------------
 This is basically based on non Dynamic Partition's
+
 if you wanna build it for Dynamic Partition's don't forget to
-cherry-pick this commit:
+
+cherry-pick this commit: faacd26
