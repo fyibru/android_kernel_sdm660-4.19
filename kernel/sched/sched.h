@@ -1281,6 +1281,11 @@ static inline void rq_clock_cancel_skipupdate(struct rq *rq)
 	rq->clock_update_flags &= ~RQCF_REQ_SKIP;
 }
 
+static inline void lockdep_assert_rq_held(struct rq *rq)
+{
+	lockdep_assert_held(__rq_lockp(rq));
+}
+
 struct rq_flags {
 	unsigned long flags;
 	struct pin_cookie cookie;
