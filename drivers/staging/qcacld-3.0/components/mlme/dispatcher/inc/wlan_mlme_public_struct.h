@@ -1779,6 +1779,8 @@ struct wlan_mlme_wmm_params {
  * @pcl_weightage: PCL weightage
  * @channel_congestion_weightage: channel congestion weightage
  * @oce_wan_weightage: OCE WAN metrics weightage
+ * @sae_pk_ap_weightage: SAE-PK AP weigtage
+ * @security_weightage: Security weightage
  */
 struct  wlan_mlme_weight_config {
 	uint8_t rssi_weightage;
@@ -1792,6 +1794,8 @@ struct  wlan_mlme_weight_config {
 	uint8_t pcl_weightage;
 	uint8_t channel_congestion_weightage;
 	uint8_t oce_wan_weightage;
+	uint8_t sae_pk_ap_weightage;
+	uint8_t security_weightage;
 };
 
 /**
@@ -1870,6 +1874,7 @@ struct wlan_mlme_per_slot_scoring {
  * @vendor_roam_score_algorithm: Preferred vendor roam score algorithm
  * @min_roam_score_delta: Minimum difference between connected AP's and
  *			candidate AP's roam score to start roaming.
+ * @security_weight_per_index: security weight per index
  */
 struct wlan_mlme_scoring_cfg {
 	bool enable_scoring_for_roam;
@@ -1885,6 +1890,7 @@ struct wlan_mlme_scoring_cfg {
 	bool apsd_enabled;
 	uint32_t vendor_roam_score_algorithm;
 	uint32_t min_roam_score_delta;
+	uint32_t security_weight_per_index;
 };
 
 /* struct wlan_mlme_threshold - Threshold related config items
