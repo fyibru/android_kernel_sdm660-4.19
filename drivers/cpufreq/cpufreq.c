@@ -2263,12 +2263,12 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 			if (strstr(p->comm, "libperfmgr")) {
 				available = true;
 				new_policy->min = new_policy->max;
-			}
+			} 
 		}
 		read_unlock(&tasklist_lock);
 
 		if (!available)
-			return -EINVAL;
+			new_policy->min = new_policy->max;
 	}
 
 	/* verify the cpu speed can be set within this limit */
