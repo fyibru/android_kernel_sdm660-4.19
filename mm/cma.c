@@ -191,6 +191,8 @@ static int __init cma_init_reserved_areas(void)
 			return ret;
 	}
 
+	show_mem_notifier_register(&cma_nb);
+
 	return 0;
 }
 core_initcall(cma_init_reserved_areas);
