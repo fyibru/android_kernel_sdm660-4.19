@@ -820,7 +820,7 @@ static inline bool min_deadline_update(struct sched_entity *se, bool exit)
 	return se->min_deadline == old_min_deadline;
 }
 
-RB_DECLARE_CALLBACKS(static, min_deadline_cb, struct sched_entity,
+RB_DECLARE_CALLBACKS_MIN(static, min_deadline_cb, struct sched_entity,
 		     run_node, min_deadline, min_deadline_update);
 
 /*
