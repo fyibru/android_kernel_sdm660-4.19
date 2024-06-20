@@ -446,6 +446,9 @@ struct task_group {
 #endif
 #endif
 
+	/* A positive value indicates that this is a SCHED_IDLE group. */
+	int			idle;
+
 #ifdef CONFIG_RT_GROUP_SCHED
 	struct sched_rt_entity	**rt_se;
 	struct rt_rq		**rt_rq;
@@ -609,6 +612,8 @@ struct cfs_rq {
 	unsigned int		h_nr_running;
 	/* h_nr_running for SCHED_IDLE tasks */
 	unsigned int		idle_h_nr_running;
+
+	int 		idle;
 
 	s64			avg_vruntime;
 	u64			avg_load;
