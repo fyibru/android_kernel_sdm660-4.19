@@ -82,6 +82,11 @@ CONFIG_PSI_FTRACE=y
 # CONFIG_CPU_ISOLATION is not set
 
 #
+# Custom
+#
+CONFIG_SCHED_CASS=y
+
+#
 # RCU Subsystem
 #
 CONFIG_PREEMPT_RCU=y

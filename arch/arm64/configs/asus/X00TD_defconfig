@@ -64,6 +64,11 @@ CONFIG_PREEMPT=y
 CONFIG_PREEMPT_COUNT=y
 
 #
+# Custom
+#
+CONFIG_SCHED_CASS=y
+
+#
 # CPU/Task time and stats accounting
 #
 CONFIG_TICK_CPU_ACCOUNTING=y
