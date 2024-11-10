@@ -364,7 +364,7 @@ static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
 	return stune_util(sg_cpu->cpu, 0, &sg_cpu->walt_load);
 }
 #else
-static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
+static void sugov_get_util(struct sugov_cpu *sg_cpu)
 {
 	struct rq *rq = cpu_rq(sg_cpu->cpu);
 	unsigned long min, max, util = cpu_util_cfs(rq);
@@ -545,10 +545,9 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	busy = use_pelt() && !sg_policy->need_freq_update &&
 		sugov_cpu_is_busy(sg_cpu);
 
-	sg_cpu->util = util = sugov_get_util(sg_cpu);
-	max = sg_cpu->max;
+	sugov_get_util(sg_cpu);
+	sugov_iowait_apply(sg_cpu, time, util, max);
 
-	util = sugov_iowait_apply(sg_cpu, time, util, max);
 	next_f = get_next_freq(sg_policy, util, max);
 	/*
 	 * Do not reduce the frequency if the CPU has not been idle
@@ -631,8 +630,6 @@ sugov_update_shared(struct update_util_data *hook, u64 time, unsigned int flags)
 	if (flags & SCHED_CPUFREQ_PL)
 		return;
 
-	sg_cpu->util = sugov_get_util(sg_cpu);
-	sg_cpu->flags = flags;
 	raw_spin_lock(&sg_policy->update_lock);
 
 	sugov_iowait_boost(sg_cpu, time, flags);
