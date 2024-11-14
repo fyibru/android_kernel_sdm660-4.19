@@ -6231,6 +6231,18 @@ static unsigned long target_load(int cpu, int type)
 	return max(rq->cpu_load[type-1], total);
 }
 
+static unsigned long cpu_avg_load_per_task(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	unsigned long nr_running = READ_ONCE(rq->cfs.h_nr_running);
+	unsigned long load_avg = weighted_cpuload(rq);
+
+	if (nr_running)
+		return load_avg / nr_running;
+
+	return 0;
+}
+
 static unsigned long cpu_load(struct rq *rq)
 {
 	return cfs_rq_load_avg(&rq->cfs);
@@ -9377,11 +9389,39 @@ static int detach_tasks(struct lb_env *env)
 			    load < 16 && !env->sd->nr_balance_failed)
 				goto next;
 
-			if (load/2 > env->imbalance)
+			/*
+			 * Make sure that we don't migrate too much load.
+			 * Nevertheless, let relax the constraint if
+			 * scheduler fails to find a good waiting task to
+			 * migrate.
+			 */
+			if (shr_bound(load, env->sd->nr_balance_failed) > env->imbalance)
 				goto next;
 
-		if ((load / 2) > env->imbalance)
-			goto next;
+			env->imbalance -= load;
+			break;
+
+		case migrate_util:
+			util = task_util_est(p);
+
+			if (shr_bound(util, env->sd->nr_balance_failed) > env->imbalance)
+				goto next;
+
+			env->imbalance -= util;
+			break;
+
+		case migrate_task:
+			env->imbalance--;
+			break;
+
+		case migrate_misfit:
+			/* This is not a misfit task */
+			if (task_fits_capacity(p, capacity_of(env->src_cpu)))
+				goto next;
+
+			env->imbalance = 0;
+			break;
+		}
 
 		detach_task(p, env);
 		list_add(&p->se.group_node, &env->tasks);
@@ -9649,6 +9689,7 @@ struct sg_lb_stats {
 	unsigned long avg_load; /*Avg load across the CPUs of the group */
 	unsigned long group_load; /* Total load over the CPUs of the group */
 	unsigned long sum_weighted_load; /* Weighted load of group's tasks */
+	unsigned long load_per_task;
 	int group_no_capacity;
 	unsigned long group_capacity;
 	unsigned long group_util; /* Total utilization of the group */
@@ -10133,7 +10174,7 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 	sgs->group_weight = group->group_weight;
 
 	sgs->group_no_capacity = group_is_overloaded(env, sgs);
-	sgs->group_type = group_classify(group, sgs);
+	sgs->group_type = group_classify(env, group, sgs);
 }
 
 /**
@@ -10295,6 +10336,7 @@ static inline void update_sd_lb_stats(struct lb_env *env, struct sd_lb_stats *sd
 	struct sched_group *sg = env->sd->groups;
 	struct sg_lb_stats *local = &sds->local_stat;
 	struct sg_lb_stats tmp_sgs;
+	bool prefer_sibling = child && child->flags & SD_PREFER_SIBLING;
 	int sg_status = 0;
 
 #ifdef CONFIG_NO_HZ_COMMON
@@ -10335,7 +10377,7 @@ static inline void update_sd_lb_stats(struct lb_env *env, struct sd_lb_stats *sd
 		    group_has_capacity(env, local) &&
 		    (sgs->sum_nr_running > local->sum_nr_running + 1)) {
 			sgs->group_no_capacity = 1;
-			sgs->group_type = group_classify(sg, sgs);
+			sgs->group_type = group_classify(env, sg, sgs);
 		}
 
 		if (update_sd_pick_busiest(env, sds, sg, sgs)) {
@@ -10557,6 +10599,7 @@ void fix_small_imbalance(struct lb_env *env, struct sd_lb_stats *sds)
  */
 static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *sds)
 {
+	unsigned long max_pull, load_above_capacity = ~0UL;
 	struct sg_lb_stats *local, *busiest;
 
 	local = &sds->local_stat;
@@ -10656,6 +10699,20 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 		env->imbalance = max_t(long, 0, (local->idle_cpus -
 						 busiest->idle_cpus) >> 1);
 		return;
+	}
+
+	/*
+	 * If there aren't any idle CPUs, avoid creating some.
+	 */
+	if (busiest->group_type == group_overloaded &&
+	    local->group_type   == group_overloaded) {
+		load_above_capacity = busiest->sum_nr_running * SCHED_CAPACITY_SCALE;
+		if (load_above_capacity > busiest->group_capacity) {
+			load_above_capacity -= busiest->group_capacity;
+			load_above_capacity *= scale_load_down(NICE_0_LOAD);
+			load_above_capacity /= busiest->group_capacity;
+		} else
+			load_above_capacity = ~0UL;
 	}
 
 	/*
