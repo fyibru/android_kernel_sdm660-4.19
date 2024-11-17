@@ -7534,10 +7534,6 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 			if (fbt_env->skip_cpu == i)
 				continue;
 
-#ifdef CONFIG_PERF_HUMANTASK
-			if (p->human_task > MAX_LEVER)
-				break;
-#endif
 			/*
 			 * p's blocked utilization is still accounted for on prev_cpu
 			 * so prev_cpu will receive a negative bias due to the double
@@ -8308,11 +8304,6 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu,
 		fbt_env.fastpath = SYNC_WAKEUP;
 		goto done;
 	}
-
-#ifdef CONFIG_PERF_HUMANTASK
-	if (p->human_task > MAX_LEVER)
-		goto done;
-#endif
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
@@ -9368,11 +9359,6 @@ redo:
 			env->flags |= LBF_NEED_BREAK;
 			break;
 		}
-
-#ifdef CONFIG_PERF_HUMANTASK
-		if (p->human_task > MAX_LEVER)
-			goto next;
-#endif
 
 		if (!can_migrate_task(p, env))
 			goto next;
